@@ -1,7 +1,7 @@
 # testAPI
 Для запуска приложения необходимо:
 1) Выполнить команду "npm i"
-2)Создать файл .env с полем DATABASE_URL вида:
+2) Создать файл .env с полем DATABASE_URL вида:
   "mysql://username:password@IP:PORT/mydb?schema=public"
 3) Выполнить миграцию: npx prisma migrate dev --name init
 4) Запустить командой npm run start
