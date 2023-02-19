@@ -8,6 +8,13 @@ const controller = require('../controller/db.controller')
 
 /**
  * Запрос для добавления пациента
+ * На вход ожидает JSON В виде:
+ * {
+ *  "phone": "+79137432421",
+    "name": "Артем",
+    "email": "email@list.ru",
+    "gender": "male",
+ * }
  * 
  */
 router.post(
@@ -17,7 +24,6 @@ router.post(
         check("name","Невреное имя. Пожалуйста, введите действительное имя").isLength(3).isString(),
         check("email","Неверный адресс электронной почты").notEmpty().isEmail(),
         check("gender","Невреный пол").notEmpty().isString().isIn(['male','female']),
-        check("password","Некоректный пароль. Минимальная длина 4 символа").isString().isLength({min:4})
     ], 
     async (req,res)=>{
         try {
@@ -32,21 +38,12 @@ router.post(
                 })
             //Проверить наличие пользователя в БД
             const user = await myController.findUser(dataUser);
-            console.log("Я нашел пользователя", user)
             console.log(!user)
             if(user.length !=0){
                 await myController.closeConnection();
                 return res.status(201).json({message:"Пользователь с таким номером телефона или почтой уже существует!"})
             }
 
-            console.log("Creating")
-            //Добавить нового пользователя
-            console.log("Я делаю хеш")
-            //const passwordHasher = await bcrypt.hash(dataUser.passwordHasher,12);
-            console.log("Я сделал хеш")
-            //dataUser.password = passwordHasher;
-
-            console.log("Я отправляю данные,", dataUser)
             const addedUser = await myController.createUser(dataUser);
             
             console.log(addedUser);
@@ -60,6 +57,13 @@ router.post(
 );
 /**
  * Запрос для добавления записи
+ *  * На вход ожидает JSON В виде:
+ * {
+ *  "pacient_id":3,
+	"doctor_id":4,
+	"scedule_id":9,
+	"date_slots": "19.02.2023"
+ * }
  * 
  */
 router.post(
@@ -120,6 +124,8 @@ router.post(
 );
 /**
  * Запрос для получения слотов у врача на определенную дату
+ * Example:
+ * /getSlots/2023-11-07/1
 */
 router.get(
     "/getSlots/:date/:doctorsID",

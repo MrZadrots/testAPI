@@ -5,7 +5,7 @@ class ControllerDb {
         this.client  = new prisma.PrismaClient();
         this.client.$connect();
     };
-
+    //Создать пациента
     async createUser(userData) {
         console.log("Я получил данные", userData)
         const res = await this.client.patients.create({data:{phone: userData.phone, name: userData.name, 
@@ -13,6 +13,7 @@ class ControllerDb {
         
         return res;
     }
+    //Найти пациента по его данным
     async findUser(userData){
         const res = await this.client.patients.findMany({where: {
             OR:[
@@ -23,41 +24,39 @@ class ControllerDb {
 
         return res
     }
-
+    //Найти пациента по его id
     async findUserById(idUser){
         console.log("Я получил id", Number(idUser))
         const res = await this.client.patients.findFirst({where:{id:Number(idUser)}})
 
         return res;
     }
-
+    //Найти доктора по его id
     async findDoctorsById(idDoctor){
         const res = await this.client.doctors.findFirst({where: {id:Number(idDoctor)}})
 
         return res;
     }
-
+    //Найти время по его id
     async findTimeById(idTime){
         const res  = await this.client.TimeSample.findFirst({where:{id:Number(idTime)}})
 
         return res
     }
-
+    //Вернуть шаблон слота
     async findTime(timeInput){
         const res = await this.client.TimeSample.findFirst({where:{time:timeInput.toISOString()}})
         return res;
     }
+    //Добавить доктора
     async createDoctor(doctorData){
         const res = await this.client.doctors.create({data:{name:doctorData.name,spec:doctorData.spec,price:doctorData.price}});
         return res;
     }
     
-    
+    //Проверить свободен ли слот
     async checkTime(doctorID,timeId,dateUsers){
-        console.log("Я получил доктор", doctorID)
-        console.log("Я получил время", timeId)
-        console.log("Я получил дату", dateUsers.toISOString().split('T')[0])
-        console.log(typeof(dateUsers))
+
 
         const res = await this.client.schedule.findMany({where: {
             AND:[
@@ -71,7 +70,7 @@ class ControllerDb {
         return res
     }
     
-    
+    //Добавить запись на слот
     async createRecord(pacient_id,doctor_id,slots_id,timeToId_id,fullDateSlots){
         const res = await this.client.schedule.create({data:{
             date: fullDateSlots.toISOString().split('T')[0],
@@ -85,6 +84,7 @@ class ControllerDb {
 
         return res
     }
+    //Вернуть все записи на слот на определенную дату и определенного врача
     async getRecords(date,doctorsId){
         console.log(date)
         const res = await this.client.schedule.findMany({
@@ -97,12 +97,12 @@ class ControllerDb {
 
         return res
     }
-
+    //Вернуть шаблон слотов
     async getTimes() {
         const res = await this.client.TimeSample.findMany();
         return res;
     }
-
+    //Выбрать нужные записи
     async selectRecords( type, date, timeInput=''){
         console.log("timeInput", timeInput.toISOString())
         const res = []
@@ -132,7 +132,7 @@ class ControllerDb {
         }
         
     }
-
+    //Создать шаблон слотов
     async createSample(time){
         const res = await this.client.TimeSample.create({data: {time:time.toISOString()}});
         return res
