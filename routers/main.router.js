@@ -5,7 +5,10 @@ const router = express.Router();
 //import {ControllerDb} from "../controller/db.controller"
 const controller = require('../controller/db.controller')
 
-
+/**
+ * Запрос для добавления пациента
+ * 
+ */
 router.post(
     "/register",
     [
@@ -54,67 +57,112 @@ router.post(
 
     }
 );
-
-router.get(
-    "/add/:patient_id/:doctor_id/:scedule_id",
+/**
+ * Запрос для добавления записи
+ * 
+ */
+router.post(
+    "/add/",
     [], 
     async (req,res)=>{
         try {
-            console.log(req.params.patient_id)
-            console.log(req.params.doctor_id)
-            console.log(req.params.scedule_id)
-            const myController = new controller()
+            const {pacient_id,doctor_id,scedule_id,date_slots} = req.body;
+            const myController = new controller();
             //Проверить есть ли такой пациент
-            const pacient = await myController.findUserById(req.params.patient_id)
+            const pacient = await myController.findUserById(pacient_id)
             if(pacient.length == 0){
                 return res.status(401).json({message: "Такого пациента не существует"})
             }
             //Проверить есть ли такой врач
-            const doctor = await myController.findDoctorsById(req.params.doctor_id)
+            const doctor = await myController.findDoctorsById(doctor_id)
             if(doctor.length == 0){
                 return res.status(401).json({message: "Такого доктора не существует"})
             }
             //Найти время 
-            const slots = await myController.findTimeById(req.params.scedule_id)
-            
+            const slots = await myController.findTimeById(scedule_id)
+            const fullDateSlots = new Date()
+            const date_slotsMas = date_slots.split('.');
+            fullDateSlots.setFullYear(Number(date_slotsMas[2]))
+            fullDateSlots.setMonth(Number(date_slotsMas[1]),0,0)
+            fullDateSlots.setDate(Number(date_slotsMas[0],0,0))
+            fullDateSlots.setMinutes(0,0,0)
+            fullDateSlots.setSeconds(0,0,0)
 
+            
             //Проверяем свободно ли время
-            const check = await myController.checkTime(doctor.id,slots.id)
+            const check = await myController.checkTime(doctor.id,slots.id,fullDateSlots)
             if(check.length!=0){
                 return res.status(401).json({message:"Время у врача занято! Выберите другое."})
             }
             
-            //Считаем время до конца записи(timeTo)ГОНОКОД
-            const tmp = slots.time.toISOString().split('T')[1].split('.')[0]
-            const timeTo = tmp.split(':')[1] =='30' ? Number(tmp.split(':')[0])+1 + ':00:00' : Number(tmp.split(':')[0]) + ':30:00'
+            //Считаем время до конца записи(timeTo)
+            const fullTimeMas = slots.time.toLocaleTimeString().split(":")
             const Time = new Date();
-
-            Time.setHours(Number(timeTo.split(':')[0])+7,timeTo.split(':')[1],0);
-
-
-            console.log("TIME",Time.getHours(),Time.getMinutes(),Time.getSeconds())
-            console.log(Time.toISOString())
-            //const record = await myController.createRecord(pacient.id,doctor.id,slots.id)
-            console.log(pacient.phone,doctor.name,slots.time)
+            Time.setHours(Number(fullTimeMas[0]),0,0)
+            Time.setMinutes(Number(fullTimeMas[1])+30,0,0)
+            Time.setSeconds(0,0,0)
             const timeToId = await myController.findTime(Time)
 
-            console.log("ASDASdASdasda",timeToId)
-            return res.status(201).json({message:"Вы успешно записаны"})
+            //Делаем запись
+            const record = await myController.createRecord(pacient.id,doctor.id,slots.id,timeToId.id,fullDateSlots)
+
+           if (record){
+                return res.status(200).json({message:"Вы успешно записаны"})
+           }
+           else{
+            return res.status(401).json({message:"Поробуйте еще раз"})
+           }
         } catch (error) {
             res.status(401).json({message:error.message})
         }
     }
 );
+/**
+ * Запрос для получения слотов у врача на определенную дату
+*/
 router.get(
-    "",
+    "/getSlots/:date/:doctorsID",
     [], 
     async (req,res)=>{
-        
+        try {
+            /**
+             * Не очень реализация метода, поменять запрос надо на JOIN
+             * 
+            */
+            const myController = new controller();
+            //Получаем все записи доктора на указынную дату
+            const recordsForDoctors =  await myController.getRecords(req.params.date,req.params.doctorsID)
+            //Получаем слоты, которые у нас могут быть
+            const slotsForDoctors = await myController.getTimes();
+            let resM = []
+
+            //Проверям занят ли слот у врача
+            slotsForDoctors.forEach(element => {
+                let isFree = true
+                for(let i =0; i<recordsForDoctors.length;i++){
+                    if(recordsForDoctors[i].time_from_id == element.id){
+                        isFree = false
+                        break
+                    }
+                }
+                let obj = {}
+                obj.id = element.id
+                obj.time = element.time.toISOString().split("T")[1].split(":00.000Z")[0],
+                obj.isFree = isFree? "Cвободно": "Занято"
+                resM.push(obj)
+            });
+           
+            return res.status(200).json(resM)
+        } catch (error) {
+            return res.status(401).json({message:error.message})
+        }
     }
 );
 
 
-
+/**
+ * Запрос, чтобы добавить в БД докторов
+*/
 router.post("/addDoctors",[],async(req,res) =>{
     try {
         const dataDoctors = [{name:"Сергей", spec:"Терапевт", price: 2000},

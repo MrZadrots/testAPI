@@ -1,6 +1,6 @@
 const express = require("express")
 const config = require("config")
-
+const EmailController = require("./controller/email.controller")
 const app = express();
 //Добавление поддержку json
 app.use(express.json({extended:true}))
@@ -14,6 +14,9 @@ function RunApp(){
         //Подтягиваем порт из конфига, в случае ошибки устанавливаем 5000
         const PORT = config.get("PORT") || 5000;
         //Старт сервера
+        const controller = new EmailController()
+        controller.sendEveryHours()
+        controller.sendEveryDay()
         app.listen(PORT, ()=> console.log(`Server is started on ${PORT}`))
     } catch (error) {
         console.log("Server error! ", error.message);

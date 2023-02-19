@@ -53,13 +53,17 @@ class ControllerDb {
     }
     
     
-    async checkTime(doctorID,timeId){
+    async checkTime(doctorID,timeId,dateUsers){
         console.log("Я получил доктор", doctorID)
-        console.log("Я получил пациента", timeId)
-        const res = await this.client.Schedule.findMany({where: {
+        console.log("Я получил время", timeId)
+        console.log("Я получил дату", dateUsers.toISOString().split('T')[0])
+        console.log(typeof(dateUsers))
+
+        const res = await this.client.schedule.findMany({where: {
             AND:[
                 {doctors_id: Number(doctorID)},
                 {time_from_id: Number(timeId)},
+                {date: dateUsers.toISOString().split('T')[0]},
                 {is_free:false}
             ]
         }})
@@ -68,10 +72,68 @@ class ControllerDb {
     }
     
     
+    async createRecord(pacient_id,doctor_id,slots_id,timeToId_id,fullDateSlots){
+        const res = await this.client.schedule.create({data:{
+            date: fullDateSlots.toISOString().split('T')[0],
+            time_to_id: timeToId_id,
+            time_from_id: slots_id,
+            patients_id: pacient_id,
+            doctors_id: doctor_id,
+            type: 1,
+            is_free: false
+        }})
+
+        return res
+    }
+    async getRecords(date,doctorsId){
+        console.log(date)
+        const res = await this.client.schedule.findMany({
+            where:{AND:{
+                doctors_id: Number(doctorsId),
+                date: date
+            }}
+        })
     
-    
+
+        return res
+    }
+
+    async getTimes() {
+        const res = await this.client.TimeSample.findMany();
+        return res;
+    }
+    //Для простоты будет возращать массив с емайл адресами
+    async selectRecords( type, date, timeInput){
+        const res = []
+        console.log(date)
+        if(type == 1){
+            try {
+                const timeId  = await this.client.TimeSample.findMany({where:{time:timeInput.toISOString()}})
+                if(timeId.lenght!=0){
+                    const records = await this.client.schedule.findMany({where:{AND:{
+                        time_from_id:timeId[0].id,date:date}},include:{patient:true,doctors:true}})
+                    return records    
+                }
+                    
+                return []
+            } catch (error) {
+                console.log(error)
+            }
+        }
+        if(type == 2){
+            try {
+                //const timeId  = await this.client.TimeSample.findMany({where:{time:timeInput.toISOString()}})
+                const records = await this.client.schedule.findMany({where:{date:date},include:{patient:true,doctors:true}})
+                return records    
+            } catch (error) {
+                console.log(error)
+            }
+        }
+        
+    }
     async closeConnection(){
         await this.client.$disconnect();
+        delete this.client
     }
 
 

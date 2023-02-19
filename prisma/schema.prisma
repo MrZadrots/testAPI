@@ -11,11 +11,11 @@ datasource db {
 }
 
 model Patients {
-  id       Int        @id @default(autoincrement())
-  phone    String     @unique
-  name     String     
-  email    String     @unique
-  gender   GendersType     
+  id       Int         @id @default(autoincrement())
+  phone    String      @unique
+  name     String
+  email    String      @unique
+  gender   GendersType
   Schedule Schedule[]
 
   @@map("Patients")
@@ -32,15 +32,15 @@ model Doctors {
 }
 
 model Schedule {
-  id        Int       @id @default(autoincrement())
-  date      DateTime  @db.Date  
-  
-  time_from_id  Int  
-  time_from TimeSample @relation(fields: [time_from_id], references: [id])
+  id   Int      @id @default(autoincrement())
+  date String 
 
+  time_from_id Int        
+  time_from    TimeSample[] @relation(name:"time_from")
 
-  time_to  DateTime   @default(now()) 
-  is_free   Boolean @default(true)
+  time_to_id Int        
+  time_to    TimeSample[] @relation(name:"time_to")
+  is_free    Boolean    @default(false)
 
   patients_id Int
   patient     Patients @relation(fields: [patients_id], references: [id])
@@ -52,18 +52,17 @@ model Schedule {
   @@map("Schedule")
 }
 
-
 model TimeSample {
-  id Int @id @default(autoincrement())
+  id   Int      @id @default(autoincrement())
   time DateTime @unique @db.Time
 
+  ScheduleFrom Schedule[] @relation(name:"time_from")
+  ScheduleTo   Schedule[]  @relation(name:"time_to")
 
-  Schedule Schedule[]
   @@map("TimeSample")
 }
 
-
-enum GendersType{
+enum GendersType {
   male
   female
 }
