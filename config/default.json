@@ -1,7 +1,5 @@
 {
     "PORT":5000,
-    "ip": "192.168.99.100",
-    "password":"example",
-    "username":"",
-    "db_name":"mainDB"
+    "from": "kablixin2018@gmail.com",
+    "pass":"pass"
 }

@@ -102,13 +102,14 @@ class ControllerDb {
         const res = await this.client.TimeSample.findMany();
         return res;
     }
-    //Для простоты будет возращать массив с емайл адресами
-    async selectRecords( type, date, timeInput){
+
+    async selectRecords( type, date, timeInput=''){
+        console.log("timeInput", timeInput.toISOString())
         const res = []
-        console.log(date)
         if(type == 1){
             try {
                 const timeId  = await this.client.TimeSample.findMany({where:{time:timeInput.toISOString()}})
+                
                 if(timeId.lenght!=0){
                     const records = await this.client.schedule.findMany({where:{AND:{
                         time_from_id:timeId[0].id,date:date}},include:{patient:true,doctors:true}})
@@ -130,6 +131,11 @@ class ControllerDb {
             }
         }
         
+    }
+
+    async createSample(time){
+        const res = await this.client.TimeSample.create({data: {time:time.toISOString()}});
+        return res
     }
     async closeConnection(){
         await this.client.$disconnect();

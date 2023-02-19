@@ -35,5 +35,4 @@ const createDataInTimeSample = async () =>{
 
 
 }
-
 createDataInTimeSample()

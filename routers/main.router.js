@@ -2,6 +2,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 const {check, validationResult} = require('express-validator')
 const router = express.Router();
+
 //import {ControllerDb} from "../controller/db.controller"
 const controller = require('../controller/db.controller')
 
@@ -87,7 +88,7 @@ router.post(
             fullDateSlots.setDate(Number(date_slotsMas[0],0,0))
             fullDateSlots.setMinutes(0,0,0)
             fullDateSlots.setSeconds(0,0,0)
-
+            
             
             //Проверяем свободно ли время
             const check = await myController.checkTime(doctor.id,slots.id,fullDateSlots)
@@ -174,14 +175,58 @@ router.post("/addDoctors",[],async(req,res) =>{
             const user  = await myController.createDoctor(dataDoctors[i]);
             console.log(user);
         }
-
+       
         return res.status(200).json({message: "Доктора успешно добавлены!"})
 
     } catch (error) {
         return res.status(401).json({message:error.message});
     }
 })
+/**
+ * Запрос для создания шаблона
+ * 
+ */
+router.get("/createSample",[],async (req,res)=>{
+    try {
+        const timeMassive = ['9:00','9:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30',
+        '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00']
+        const myController = new controller();
+        
+        const check = await myController.getTimes();
 
+        if( check.length!=0){
+            return res.status(401).json({message:"Шаблон уже заполнен!"})
+        }
+        timeMassive.forEach(async elem =>{
+                    
+            const time = new Date();
+            const hours = elem.split(':')[0];
+            const minutes = elem.split(':')[1] 
+            time.setSeconds(0,0)
+            time.setHours(Number(hours)+7)
+            time.setMinutes(Number(minutes))
+            const resM = await myController.createSample(time)   
+        })
+        return res.status(201).json({message:"Успешно"})
+    } catch (error) {
+        return res.status(401).json({message:error.message})
+    }
+})
 
-//export default router;
+/**
+ * Запрос, чтобы получить шаблон слотов
+ */
+
+router.get('/getSample',[], async (req,res)=>{
+    try {
+        const myController = new controller()
+        const resultsM = await myController.getTimes();
+        resultsM.forEach(e => {
+            e.time = e.time.toISOString().split("T")[1].split(":00.000Z")[0]
+        })
+        return res.status(200).json(resultsM)
+    } catch (error) {
+        return res.status(401).json({message:error.message})
+    }
+})
 module.exports = router;
