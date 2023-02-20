@@ -6,3 +6,4 @@
 3) Выполнить миграцию: npx prisma migrate dev --name init
 4) Запустить командой npm run start
 5) Заполнить базы данных(таблицы "Doctors", "TimeSample"), выполнив два запроса GET createSample и GET addDoctors
+6) Для работы отправки сообщений, необходимо добавить в файле config/default значение своей электронной почты и пароля
