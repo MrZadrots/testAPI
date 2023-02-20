@@ -73,6 +73,21 @@ router.post(
         try {
             const {pacient_id,doctor_id,scedule_id,date_slots} = req.body;
             const myController = new controller();
+            //Найти время 
+            const slots = await myController.findTimeById(scedule_id)
+            const fullDateSlots = new Date()
+            const date_slotsMas = date_slots.split('.');
+            fullDateSlots.setFullYear(Number(date_slotsMas[2]))
+            fullDateSlots.setMonth(Number(date_slotsMas[1]),0,0)
+            fullDateSlots.setDate(Number(date_slotsMas[0],0,0))
+            fullDateSlots.setMinutes(0,0,0)
+            fullDateSlots.setSeconds(0,0,0)
+            //Смотрим день недели
+            let days = ['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'];
+            if(days[fullDateSlots.getDay()]=="СБ"|| days[fullDateSlots.getDay()]=='ВС'){
+                return res.status(201).json({message:"Это выходной! Выберите другой день!"})
+            }
+
             //Проверить есть ли такой пациент
             const pacient = await myController.findUserById(pacient_id)
             if(pacient.length == 0){
@@ -83,17 +98,8 @@ router.post(
             if(doctor.length == 0){
                 return res.status(401).json({message: "Такого доктора не существует"})
             }
-            //Найти время 
-            const slots = await myController.findTimeById(scedule_id)
-            const fullDateSlots = new Date()
-            const date_slotsMas = date_slots.split('.');
-            fullDateSlots.setFullYear(Number(date_slotsMas[2]))
-            fullDateSlots.setMonth(Number(date_slotsMas[1]),0,0)
-            fullDateSlots.setDate(Number(date_slotsMas[0],0,0))
-            fullDateSlots.setMinutes(0,0,0)
-            fullDateSlots.setSeconds(0,0,0)
             
-            
+
             //Проверяем свободно ли время
             const check = await myController.checkTime(doctor.id,slots.id,fullDateSlots)
             if(check.length!=0){

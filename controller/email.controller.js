@@ -5,54 +5,19 @@ const config = require('config')
 
 class EmailController{
     async sendEveryHours(){ 
-         cron.schedule('*/60 * * * *', async function(){
+         cron.schedule('0,30 * * * *', async function(){
             const myController = new controller()
             //Определить текущее время и прибавить два часа
             const timeNow = new Date()
             const tmp = timeNow.toISOString().split("T")[0]
-            if(timeNow.getMinutes()==0 || timeNow.getMinutes()==30){
 
-                //Найти все записи через два часа
-                timeNow.setHours(timeNow.getHours()+2)
-                console.log("asad",timeNow)
-                const res = await myController.selectRecords(1, tmp, timeNow);
-                let transporter  =  nodemailer.createTransport({
-                    service:'gmail',
-                    auth:{
-                        user: config.get("from"),
-                        pass: config.get('pass'),
-                    },
-                })
-                ///Обойти массив и отпраить письма
-                for(let i=0;i<res.length;i++){
-                    const spec = res[i].doctors.spec
-                    const name = res[i].patient.name
-                    const email = res[i].patient.email
-                    console.log("asdasd")
-                    let result = await transporter.sendMail({
-                        from: config.get("from"),
-                        to: email,
-                        subject: "Запись к врачу",
-                        text:`Привет ${name}! Через 2 часа у вас приём у ${spec}a!`
-                    })
-                    console.log("sadasdr",result)
-                }
-                
-            }
-            myController.closeConnection()
-            
-        })
-    }
-    async sendEveryDay(){
-        cron.schedule('* */1 * * * ', async function(){
-            const myController = new controller()
-            //Определить текущую дату и прибавить два дня
-            const timeNow = new Date()
-            timeNow.setDate(timeNow.getDate()+2)
-            const tmp = timeNow.toISOString().split("T")[0]
+            timeNow.setSeconds(0,0,0)
+            //Найти все записи через два часа
+            const currentTimeZone = timeNow.getTimezoneOffset()/60
 
-            //Выполнить запрос
-            const res = await myController.selectRecords(2,tmp);
+            timeNow.setHours(timeNow.getHours()+2-currentTimeZone)
+
+            const res = await myController.selectRecords(1, tmp, timeNow);
             let transporter  =  nodemailer.createTransport({
                 service:'gmail',
                 auth:{
@@ -65,13 +30,59 @@ class EmailController{
                 const spec = res[i].doctors.spec
                 const name = res[i].patient.name
                 const email = res[i].patient.email
-                console.log("asdasd")
+                const time  = await myController.findTimeById(res[i].time_from_id)
+                const timeString = time.time.toISOString().split('T')[1].split(':00.000Z')[0]
                 let result = await transporter.sendMail({
-                from: config.get(from),
+                    from: config.get("from"),
                     to: email,
                     subject: "Запись к врачу",
-                    text:`Привет ${name}! Через 2 часа у вас приём у ${spec}a!`
+                    text:`Привет ${name}! Через 2 часа у вас приём у ${spec}a в ${timeString}!`
                 })
+                }
+            myController.closeConnection()
+            
+        })
+    }
+    async sendEveryDay(){
+        cron.schedule('* * 1 * * *', async function(){
+            console.log("Начал выполнять крон")
+            const fromE = config.get("from")
+            const myController = new controller()
+            //Определить текущую дату и прибавить два дня
+            const timeNow = new Date()
+            timeNow.setDate(timeNow.getDate()+1)
+            const tmp = timeNow.toISOString().split("T")[0]
+            console.log("TMP", tmp)
+            //Выполнить запрос
+            const res = await myController.selectRecords(2,tmp);
+            //console.log('res', res)
+
+            
+            ///Обойти массив и отпраить письма
+            for(let i=0;i<res.length;i++){
+                const spec = res[i].doctors.spec
+                const name = res[i].patient.name
+                const email = res[i].patient.email
+                const time  = await myController.findTimeById(res[i].time_from_id)
+                const timeString = time.time.toISOString().split('T')[1].split(':00.000Z')[0]
+                console.log("ОТправляю письмо", email)
+                console.log("Time for Slots", timeString)
+                let transporter  =  nodemailer.createTransport({
+                    service:'gmail',
+                    auth:{
+                        user: fromE,
+                        pass: config.get('pass'),
+                    },
+                })
+                console.log("Cоздал транс")
+                let result = await transporter.sendMail({
+                    from: fromE,
+                    to: email,
+                    subject: "Запись к врачу",
+                    text:`Привет ${name}! Напоминаем что вы записаны к ${spec}у завтра в ${timeString}!`
+                })
+                console.log("Отправил письмо")
+                console.log(result)
             }
 
             myController.closeConnection()

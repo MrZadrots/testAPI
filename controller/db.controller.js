@@ -104,15 +104,15 @@ class ControllerDb {
     }
     //Выбрать нужные записи
     async selectRecords( type, date, timeInput=''){
-        console.log("timeInput", timeInput.toISOString())
         const res = []
         if(type == 1){
             try {
                 const timeId  = await this.client.TimeSample.findMany({where:{time:timeInput.toISOString()}})
-                
                 if(timeId.lenght!=0){
+                    
                     const records = await this.client.schedule.findMany({where:{AND:{
                         time_from_id:timeId[0].id,date:date}},include:{patient:true,doctors:true}})
+                    console.log("Record",records)
                     return records    
                 }
                     
@@ -122,8 +122,8 @@ class ControllerDb {
             }
         }
         if(type == 2){
+            console.log(date)
             try {
-                //const timeId  = await this.client.TimeSample.findMany({where:{time:timeInput.toISOString()}})
                 const records = await this.client.schedule.findMany({where:{date:date},include:{patient:true,doctors:true}})
                 return records    
             } catch (error) {
