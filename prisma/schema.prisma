@@ -62,7 +62,41 @@ model TimeSample {
   @@map("TimeSample")
 }
 
+model tasks {
+  id Int @id @default(autoincrement())
+  phone String 
+  information String
+  isActual Boolean @default(true)
+  countCall Int 
+  status StatusTask
+  isDone Boolean @default(false)
+
+  @@map("Tasks")
+}
+
+
+model calls{
+  id Int @id @default(autoincrement())
+  phone String
+  idCallTask String
+  status StatusCall
+  result String
+  idBulkId String
+
+
+  @@map("Calls")
+}
+
 enum GendersType {
   male
   female
+}
+enum StatusTask {
+  new
+  process
+  done
+}
+enum StatusCall {
+  process
+  done
 }

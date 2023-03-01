@@ -14,9 +14,9 @@ function RunApp(){
         //Подтягиваем порт из конфига, в случае ошибки устанавливаем 5000
         const PORT = config.get("PORT") || 5000;
         //Старт сервера
-        const controller = new EmailController()
+        /*const controller = new EmailController()
         controller.sendEveryHours()
-        controller.sendEveryDay()
+        controller.sendEveryDay()*/
         app.listen(PORT, ()=> console.log(`Server is started on ${PORT}`))
     } catch (error) {
         console.log("Server error! ", error.message);

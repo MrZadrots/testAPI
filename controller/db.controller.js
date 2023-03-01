@@ -45,6 +45,7 @@ class ControllerDb {
     }
     //Вернуть шаблон слота
     async findTime(timeInput){
+        console.log("Controllet time is ", timeInput.toISOString())
         const res = await this.client.TimeSample.findFirst({where:{time:timeInput.toISOString()}})
         return res;
     }
@@ -135,6 +136,139 @@ class ControllerDb {
     //Создать шаблон слотов
     async createSample(time){
         const res = await this.client.TimeSample.create({data: {time:time.toISOString()}});
+        return res
+    }
+
+
+    //Добавить задачи для оповещения
+    async adddTask (data){
+        const res = await this.client.tasks.create({
+            data:{
+                phone: data.phone, 
+                information: data.information,
+                isActual: data.isActual,
+                countCall: data.countCall,
+                status: "new",
+                isDone: false
+            }
+        });
+
+        return res
+    }
+
+    //Получить новые задачи для оповещения
+    async getTasksStatusNew (){
+        const res = await this.client.tasks.findMany({where:{status:"new"}})
+
+
+        return res
+    }
+
+    async getTasks (){
+        const res = await this.client.tasks.findMany({where:{AND:{
+            status:"process",
+            isActual: true,
+            countCall:{
+                lt:3
+            },
+            isDone: false
+        }}})
+
+        return res
+    }
+    ///UPDaTE TASK
+    async updateTask(inputData){
+        console.log("Я получил в бд", inputData)
+        console.log("Id",)
+        const allRes = []
+        inputData.forEach(async el => {
+            const res = await this.client.tasks.update({
+                where:
+                {
+                    id:el.id
+                },
+                data:{
+                    status:"process",
+                    countCall: Number(el.count)+1
+                }
+            })
+            allRes.push(res)
+        })
+        return allRes
+    }
+
+    async updateCalls (inputData){
+        const res = []
+        inputData.forEach(async element => {
+            const tmpRes = await this.client.calls.upsert({
+                where:{
+                    id:element.id
+                },
+                update:{
+                    status: element.status,
+                    result: element.result,
+                    idCallTask: String(element.call_taskId),
+                    idBulkId: String(element.bulk_id)
+            
+                },
+                create:{
+                    phone:String(element.phone),
+                    status: element.status,
+                    result: element.result,
+                    idCallTask: String(element.call_taskId),
+                    idBulkId: String(element.bulk_id)         
+                }
+            })
+
+            res.push(tmpRes)
+        });
+
+        return res
+    }
+
+    async updateCallsStatus(inputData){
+        const res = []
+        console.log(typeof(inputData))
+        inputData.forEach(async el=>{
+            const resEl = await this.client.calls.update({
+                where:{
+                    id: el.id
+                },
+                data:{
+                    status:el.status,
+                    result:el.information
+                }
+            })
+            res.push(resEl)
+        })
+    }
+    async updateTasksStatus (inputData){
+        console.log("Я получил данные для БД", inputData)
+        const res = []
+        inputData.forEach(async(el, i)=>{
+            const resEl = await this.client.tasks.update({
+                where:{
+                    id:el.id
+                },
+                data:{
+                    isActual: Boolean(el.isActual),
+                    status: el.status,
+                    isDone: Boolean(el.isDone),
+                    information: el.information,
+                    //countCall: idCountEl.countCall+1
+
+                }
+            })
+
+            res.push(resEl)
+        })
+        return res
+    } 
+    async getCalls(){
+        const res = await this.client.calls.findMany({where:{
+            status:"process"
+        }})
+
         return res
     }
     async closeConnection(){

@@ -41,7 +41,7 @@ router.post(
             console.log(!user)
             if(user.length !=0){
                 await myController.closeConnection();
-                return res.status(201).json({message:"Пользователь с таким номером телефона или почтой уже существует!"})
+                return res.status(400).json({message:"Пользователь с таким номером телефона или почтой уже существует!"})
             }
 
             const addedUser = await myController.createUser(dataUser);
@@ -99,24 +99,33 @@ router.post(
                 return res.status(401).json({message: "Такого доктора не существует"})
             }
             
-
+            console.log("Проверяю время")
             //Проверяем свободно ли время
             const check = await myController.checkTime(doctor.id,slots.id,fullDateSlots)
             if(check.length!=0){
                 return res.status(401).json({message:"Время у врача занято! Выберите другое."})
             }
-            
+            console.log("Проверил время", check)
             //Считаем время до конца записи(timeTo)
+            const currentTimeZone = new Date().getTimezoneOffset()/60
+            console.log("currentTineZone",currentTimeZone)
+            console.log("slotsTime",slots.time.getHours()+currentTimeZone)
             const fullTimeMas = slots.time.toLocaleTimeString().split(":")
+            console.log("fullTimeMas", fullTimeMas)
             const Time = new Date();
-            Time.setHours(Number(fullTimeMas[0]),0,0)
+            /*Time.setHours(Number(fullTimeMas[0]),0,0)
             Time.setMinutes(Number(fullTimeMas[1])+30,0,0)
+            Time.setSeconds(0,0,0)*/
+            Time.setHours(slots.time.getHours(),0,0)
+            Time.setMinutes(slots.time.getMinutes()+30,0,0)
             Time.setSeconds(0,0,0)
+            console.log("Time", Time.toLocaleTimeString())
+            console.log("TimeISO", Time.toISOString())
             const timeToId = await myController.findTime(Time)
 
             //Делаем запись
             const record = await myController.createRecord(pacient.id,doctor.id,slots.id,timeToId.id,fullDateSlots)
-
+            myController.closeConnection()
            if (record){
                 return res.status(200).json({message:"Вы успешно записаны"})
            }
@@ -142,6 +151,7 @@ router.get(
              * Не очень реализация метода, поменять запрос надо на JOIN
              * 
             */
+            console.log("ADSDASDASDSDS", req.params.date);
             const myController = new controller();
             //Получаем все записи доктора на указынную дату
             const recordsForDoctors =  await myController.getRecords(req.params.date,req.params.doctorsID)
@@ -164,7 +174,7 @@ router.get(
                 obj.isFree = isFree? "Cвободно": "Занято"
                 resM.push(obj)
             });
-           
+            await myController.closeConnection()
             return res.status(200).json(resM)
         } catch (error) {
             return res.status(401).json({message:error.message})
@@ -187,7 +197,7 @@ router.post("/addDoctors",[],async(req,res) =>{
             const user  = await myController.createDoctor(dataDoctors[i]);
             console.log(user);
         }
-       
+        await myController.closeConnection()
         return res.status(200).json({message: "Доктора успешно добавлены!"})
 
     } catch (error) {
@@ -219,6 +229,7 @@ router.get("/createSample",[],async (req,res)=>{
             time.setMinutes(Number(minutes))
             const resM = await myController.createSample(time)   
         })
+        await myController.closeConnection()
         return res.status(201).json({message:"Успешно"})
     } catch (error) {
         return res.status(401).json({message:error.message})
@@ -236,9 +247,150 @@ router.get('/getSample',[], async (req,res)=>{
         resultsM.forEach(e => {
             e.time = e.time.toISOString().split("T")[1].split(":00.000Z")[0]
         })
+        await myController.closeConnection()
         return res.status(200).json(resultsM)
     } catch (error) {
         return res.status(401).json({message:error.message})
+    }
+})
+
+router.get('/timeId/:timeH/:timeM',[], async (req,res)=>{
+    try {
+        const parsedDateFromHours = req.params.timeH
+        const parsedDateFromMinutes = req.params.timeM
+        const Time = new Date()
+        const currentTimeZone = Time.getTimezoneOffset()/60
+        console.log("currentTimeZone",currentTimeZone)
+        Time.setHours(Number(parsedDateFromHours)-currentTimeZone,0,0)
+        Time.setMinutes(Number(parsedDateFromMinutes),0,0)
+        Time.setSeconds(0,0,0)
+        console.log("Hours", Time.getHours())
+        console.log("TimeISO", Time.toISOString())
+
+        console.log("Time on fun to req db", Time)
+        const myController = new controller()
+        const timeObj = await myController.findTime(Time)
+        console.log("Time on req to db", timeObj)
+        await myController.closeConnection()
+        if(timeObj== null){
+            return res.status(401).json({message: "Такого времени нет"})
+        }
+        return res.status(200).json({message:timeObj})
+    } catch (error) {
+        return res.status(401).json({message:error.message})
+    }
+})
+
+/***
+ * 
+ * Получить актуальные задачи для оповещения 
+ * 
+ ***/
+router.get('/getTasks', [], async(req,res)=>{
+    try {
+        console.log("============")
+        console.log("Я начал выполнять запрос /getTasks")
+        const myController = new controller()
+        const result = await myController.getTasks()
+        console.log("Вот что я получил из БД", result)
+        console.log("============")
+        await myController.closeConnection()
+        return res.status(200).json({message: result})
+    } catch (error) {
+        return res.status(400).json({message:error.message})
+    }
+})
+/**
+ * Обновить таблицу звонки
+ * 
+ * 
+ */
+router.post('/update',[],async (req,res)=>{
+    try {
+        console.log("==============")
+        console.log("Я начал выполнять запрос /update")
+        const inputData = req.body.data
+        const myController = new controller()
+        console.log("Я получил данные ", inputData)
+
+        const result = await myController.updateCalls(inputData)
+
+        console.log("Я выполнил запрос /update", result)
+        console.log("==============")
+        await myController.closeConnection()
+        return res.status(200).json({message:"Успешно"})
+        
+    } catch (error) {
+        return res.status(400).json({message:error.message})
+    }
+})
+
+/***
+ * 
+ * 
+ */
+router.post("/updateTasks",[], async (req,res)=>{
+    try {
+        const data = req.body.data
+        const myController = new controller()
+        console.log("==============")
+        console.log("Я начал выполнять запрос")
+        console.log("data", data)
+        const result = await myController.updateTask(data)
+        console.log("Я выполнил запрос updateTasks")
+        console.log("==============")
+        await myController.closeConnection()
+        return res.status(200).json({message:"Успешно"})
+
+    }
+    catch(error){
+        return res.status(400).json({message:error.message})
+    }
+})
+
+router.get("/getCalls", [], async (req, res)=>{
+    try {
+        const myController = new controller()
+        const result = await myController.getCalls()
+        await myController.closeConnection()
+        return res.status(200).json({message:result})
+    } catch (error) {
+        return res.status(400).json({message:error.message})
+    }
+})
+
+router.get("/updateStatusCalls", [], async (req,res)=>{
+    try {
+        console.log("==============")
+        console.log("Я начал выполнять запрос updateStatusCalls")
+        const myController = new controller()
+        const result = await myController.updateCallsStatus(req.body.data)
+        await myController.closeConnection()
+        console.log("result", result)
+
+        console.log("==============")
+        console.log("Я закончил выполнять запрос updateStatusCalls")
+        return res.status(200).json({message:"Успешно"})
+
+    } catch (error) {
+        return res.status(400).json({message:error.message})
+    }
+})
+
+router.get('/updateStatusTasks', [], async (req, res)=>{
+    try {
+        console.log("============")
+        console.log("Я начал выполнять запрос updateStatusTasks")
+        const myController = new controller()
+        const result = await myController.updateTasksStatus(req.body.data)
+        await myController.closeConnection()
+
+        console.log("============")
+        console.log("Я закончил выполнять запрос updateStatusTasks")
+
+        return res.status(200).json({message:"Успешно"})
+    } catch (error) {
+        return res.status(400).json({message: error.message})
     }
 })
 module.exports = router;

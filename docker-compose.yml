@@ -2,16 +2,71 @@ version: '3.1'
 
 services:
 
-  db:
-    image: mysql
-    restart: always
-    environment:
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - todo-mysql-data:/var/lib/mysql
+    environment: 
       MYSQL_ROOT_PASSWORD: example
-    network_mode: "host"
+      MYSQL_DATABASE: myDb
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
-    network_mode: "host"
+
+
+
+volumes:
+  todo-mysql-data:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
